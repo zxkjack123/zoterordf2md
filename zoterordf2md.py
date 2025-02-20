@@ -1,4 +1,5 @@
 import argparse
+import glob
 import re
 import subprocess
 import os
@@ -15,14 +16,19 @@ def extract_pdf_paths(rdf_file):
     return pdf_paths
 
 
-def convert_pdf_to_md(pdf_path, output_folder):
+def convert_pdf_to_md(pdf_path, output_folder, method="auto"):
     """Convert a PDF file to a Markdown file using the magic-pdf application."""
-    md_filename = os.path.basename(os.path.splitext(pdf_path)[0] + '.md')
-    md_path = os.path.join(output_folder, md_filename)
+    filename = os.path.basename(pdf_path)
+    base_name = os.path.splitext(filename)[0]
+    md_folder = os.path.join(output_folder, base_name, method)
+    md_name = os.path.join(md_folder, base_name + ".md")
+
+    os.makedirs(md_folder, exist_ok=True)
+
     try:
         subprocess.run(['magic-pdf', '-p', pdf_path,
-                       '-o', md_path], check=True)
-        print(f"Converted {pdf_path} to {md_path}")
+                        '-o', output_folder, '-m', method], check=True)
+        print(f"Converted {pdf_path} to {md_name}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to convert {pdf_path} to Markdown. Error: {e}")
 
@@ -47,6 +53,19 @@ def main():
     # Convert each PDF to Markdown
     for pdf_path in pdf_paths:
         convert_pdf_to_md(pdf_path, args.output_folder)
+
+    # cleanup tempary files
+    post_fix_clean = ["_content_list.json", "_layout.pdf",
+                      "_middle.json", "_model.json", "_origin.pdf", "_spans.pdf"]
+    for pdf_path in pdf_paths:
+        filename = os.path.basename(pdf_path)
+        base_name = os.path.splitext(filename)[0]
+        for pf in post_fix_clean:
+            temp_file = os.path.join(
+                args.output_folder, base_name, "auto", f"{base_name}{pf}")
+            if os.path.exists(temp_file):
+                print(f"Removing {temp_file}")
+                os.remove(temp_file)
 
 
 if __name__ == "__main__":
