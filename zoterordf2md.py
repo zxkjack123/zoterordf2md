@@ -4,20 +4,21 @@ import subprocess
 import os
 
 
-def extract_pdf_paths(rdf_file):
-    """Extract PDF paths from an RDF file."""
-    pdf_paths = []
-    with open(rdf_file, 'r') as file:
+def extract_file_paths(rdf_file):
+    """Extract file paths from an RDF file."""
+    file_paths = []
+    with open(rdf_file, 'r', encoding='utf-8') as file:
         content = file.read()
-        # Use regex to find all occurrences of rdf:resource="files/**.pdf"
-        matches = re.findall(r'rdf:resource="(files/[^"]+\.pdf)"', content)
-        pdf_paths.extend(matches)
-    return pdf_paths
+        # Use regex to find all occurrences of rdf:resource="files/**.{pdf,ppt,pptx,doc,docx}"
+        matches = re.findall(
+            r'rdf:resource="(files/[^"]+\.(pdf|ppt|pptx|doc|docx))"', content)
+        file_paths.extend(match[0] for match in matches)
+    return file_paths
 
 
-def convert_pdf_to_md(pdf_path, tmp_folder, method="auto"):
-    """Convert a PDF file to a Markdown file using the magic-pdf application."""
-    filename = os.path.basename(pdf_path)
+def convert_file_to_md(file_path, tmp_folder, method="auto"):
+    """Convert a file to a Markdown file using the magic-pdf application."""
+    filename = os.path.basename(file_path)
     base_name = os.path.splitext(filename)[0]
     md_folder = os.path.join(tmp_folder, base_name, method)
     md_name = os.path.join(md_folder, base_name + ".md")
@@ -25,17 +26,17 @@ def convert_pdf_to_md(pdf_path, tmp_folder, method="auto"):
     os.makedirs(md_folder, exist_ok=True)
 
     try:
-        subprocess.run(['magic-pdf', '-p', pdf_path,
-                        '-o', tmp_folder, '-m', method], check=True)
-        print(f"Converted {pdf_path} to {md_name}")
+        subprocess.run(['magic-pdf', '-p', file_path,
+                        '-o', tmp_folder, '-m', method, '-e', "0"], check=True)
+        print(f"Converted {file_path} to {md_name}")
     except subprocess.CalledProcessError as e:
-        print(f"Failed to convert {pdf_path} to Markdown. Error: {e}")
+        print(f"Failed to convert {file_path} to Markdown. Error: {e}")
 
 
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(
-        description="Extract PDF paths from an RDF file and convert them to Markdown.")
+        description="Extract file paths from an RDF file and convert them to Markdown.")
     parser.add_argument("rdf_file_path", type=str,
                         help="Path to the RDF file to process.")
     parser.add_argument("--method", type=str, default="auto",
@@ -50,14 +51,14 @@ def main():
     os.makedirs(args.output_folder, exist_ok=True)
     os.makedirs(args.tmp_folder, exist_ok=True)
 
-    # Extract PDF paths
-    pdf_paths = extract_pdf_paths(args.rdf_file_path)
-    print("PDF paths found:", pdf_paths)
+    # Extract file paths
+    file_paths = extract_file_paths(args.rdf_file_path)
+    print("File paths found:", file_paths)
 
-    # Convert each PDF to Markdown
-    for pdf_path in pdf_paths:
-        convert_pdf_to_md(pdf_path, args.tmp_folder, args.method)
-        filename = os.path.basename(pdf_path)
+    # Convert each file to Markdown
+    for file_path in file_paths:
+        convert_file_to_md(file_path, args.tmp_folder, args.method)
+        filename = os.path.basename(file_path)
         base_name = os.path.splitext(filename)[0]
         md_file = os.path.join(args.tmp_folder, base_name,
                                args.method, f"{base_name}.md")
