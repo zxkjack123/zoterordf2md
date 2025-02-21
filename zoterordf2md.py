@@ -26,7 +26,7 @@ def convert_pdf_to_md(pdf_path, tmp_folder, method="auto"):
 
     try:
         subprocess.run(['magic-pdf', '-p', pdf_path,
-                        '-o', tmp_folder, '-m', method, '-e', "0"], check=True)
+                        '-o', tmp_folder, '-m', method], check=True)
         print(f"Converted {pdf_path} to {md_name}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to convert {pdf_path} to Markdown. Error: {e}")
