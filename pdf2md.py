@@ -27,8 +27,10 @@ def convert_file_to_md(file_path, tmp_folder, method="auto"):
         subprocess.run(['magic-pdf', '-p', file_path,
                         '-o', tmp_folder, '-m', method], check=True)
         print(f"Converted {file_path} to {md_name}")
+        return 0  # Success
     except subprocess.CalledProcessError as e:
         print(f"Failed to convert {file_path} to Markdown. Error: {e}")
+        return 1  # Error
 
 
 def parse_folder_names(path):
@@ -80,7 +82,7 @@ def main():
 
     # Convert each file to Markdown
     for file_path in pdf_files:
-        # Check whether the pdf has already been converted
+        # Check whether the PDF has already been converted
         filename = os.path.basename(file_path)
         base_name = os.path.splitext(filename)[0]
         folder_names = subtract_folder_names(
@@ -91,11 +93,15 @@ def main():
             args.output_folder, *folder_names, f"{base_name}.md")
         if not os.path.exists(md_filename):
             print(f"Converting {file_path} to Markdown.")
-            convert_file_to_md(file_path, args.tmp_folder, args.method)
-            tmp_md_file = os.path.join(
-                args.tmp_folder, base_name, args.method, f"{base_name}.md")
-            print(f"Moving {tmp_md_file} to {md_filename}")
-            os.rename(tmp_md_file, md_filename)
+            status = convert_file_to_md(
+                file_path, args.tmp_folder, args.method)
+            if status == 0:  # Only proceed if conversion was successful
+                tmp_md_file = os.path.join(
+                    args.tmp_folder, base_name, args.method, f"{base_name}.md")
+                print(f"Moving {tmp_md_file} to {md_filename}")
+                os.rename(tmp_md_file, md_filename)
+            else:
+                print(f"Skipping {file_path} due to conversion failure.")
         else:
             print(f"Markdown file {md_filename} already exists. Skipping.")
 
